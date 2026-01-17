@@ -10,7 +10,7 @@
 #define RESOLUTION 8
 
 /* ================= IR EYE BLINK ================= */
-#define EYE_SENSOR_PIN 27
+#define EYE_SENSOR_PIN 35
 unsigned long eyeClosedStartTime = 0;
 bool eyeBeeping = false;
 unsigned long lastEyeCheck = 0;
@@ -22,7 +22,7 @@ float Ax, Ay, Az;
 float roll;
 unsigned long lastMPURead = 0;
 
-/* ================= SIMULATED HR & SPO2 ================= */
+/* ================= HR & SPO2 ================= */
 float simulatedHR = 75;
 float simulatedSpO2 = 97;
 bool simulateRandom = true;
