@@ -1,0 +1,38 @@
+#include <TinyGPSPlus.h>
+#include <HardwareSerial.h>
+
+TinyGPSPlus gps;
+HardwareSerial GPS(2);   // use UART2
+
+unsigned long lastPrint = 0;
+
+void setup() {
+  Serial.begin(115200);
+
+  // GPS RX = 16, TX = 17
+  GPS.begin(9600, SERIAL_8N1, 16, 17);
+
+  Serial.println("GPS Started...");
+}
+
+void loop() {
+  while (GPS.available()) {
+    gps.encode(GPS.read());
+  }
+
+  if (millis() - lastPrint >= 7000) {   // 7 seconds
+    lastPrint = millis();
+
+    if (gps.location.isValid()) {
+      Serial.print("Latitude: ");
+      Serial.println(gps.location.lat(), 6);
+
+      Serial.print("Longitude: ");
+      Serial.println(gps.location.lng(), 6);
+    } else {
+      Serial.println("Waiting for GPS fix...");
+    }
+
+    Serial.println("--------------------");
+  }
+}

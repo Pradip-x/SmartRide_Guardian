@@ -1,0 +1,1 @@
+Please Test all of your sensors with this code to verify the connections and if the sensor is working properly or not.

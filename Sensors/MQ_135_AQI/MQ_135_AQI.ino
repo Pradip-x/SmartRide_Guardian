@@ -1,0 +1,35 @@
+#define MQ135_PIN 34   // ESP32 ADC pin
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("MQ-135 Air Quality Monitor (Real ADC Based)");
+}
+
+void loop() {
+  int sensorValue = analogRead(MQ135_PIN);
+
+  String airQuality;
+
+  // These thresholds are based on real MQ-135 behavior
+  // You can fine-tune them in your environment
+  if (sensorValue < 800)
+    airQuality = "Excellent";
+  else if (sensorValue < 1300)
+    airQuality = "Good";
+  else if (sensorValue < 1800)
+    airQuality = "Moderate";
+  else if (sensorValue < 2300)
+    airQuality = "Bad";
+  else if (sensorValue < 2800)
+    airQuality = "Severe";
+  else
+    airQuality = "Hazardous";
+
+  Serial.print("ADC Value: ");
+  Serial.print(sensorValue);
+  Serial.print("  | Air Quality: ");
+  Serial.println(airQuality);
+
+  delay(10000); // read every 10 seconds
+}
