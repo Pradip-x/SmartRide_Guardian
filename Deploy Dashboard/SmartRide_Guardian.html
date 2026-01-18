@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Safety Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .status-connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        .alert-banner {
+            background: #ef4444;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+            display: none;
+        }
+
+        .alert-banner.active {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .card-icon {
+            font-size: 2em;
+        }
+
+        .metric {
+            margin: 15px 0;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .metric-unit {
+            font-size: 0.6em;
+            color: #999;
+            margin-left: 5px;
+        }
+
+        .alert-indicator {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .alert-safe {
+            background: #10b981;
+            color: white;
+        }
+
+        .alert-warning {
+            background: #ef4444;
+            color: white;
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .coordinates {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .coord-box {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .coord-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .coord-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            font-family: monospace;
+        }
+
+        .connection-form {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 SmartRide Guardian</h1>
+            <span id="connectionStatus" class="status-badge status-disconnected">DISCONNECTED</span>
+        </div>
+
+        <div class="connection-form">
+            <div class="form-group">
+                <input type="text" id="ipAddress" placeholder="ESP32 IP Address (e.g., 192.168.1.100)" value="192.168.1.100">
+                <button id="connectBtn" onclick="connectWebSocket()">Connect</button>
+            </div>
+        </div>
+
+        <div id="alertBanner" class="alert-banner">
+            ⚠️ DRIVER ALERT ACTIVE ⚠️
+        </div>
+
+        <div class="grid">
+            <!-- Eye Sensor Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Eye Status</span>
+                    <span class="card-icon">👁️</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Current Status</div>
+                    <div id="eyeStatus" class="metric-value">WAITING</div>
+                </div>
+                <span id="eyeAlert" class="alert-indicator alert-safe">NORMAL</span>
+            </div>
+
+            <!-- MPU6050 Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Head Tilt</span>
+                    <span class="card-icon">🎯</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Roll Angle</div>
+                    <div class="metric-value">
+                        <span id="rollValue">--</span>
+                        <span class="metric-unit">deg</span>
+                    </div>
+                </div>
+                <span id="mpuAlert" class="alert-indicator alert-safe">NORMAL</span>
+            </div>
+
+            <!-- Heart Rate Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Heart Rate</span>
+                    <span class="card-icon">❤️</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">BPM</div>
+                    <div class="metric-value">
+                        <span id="heartRate">--</span>
+                        <span class="metric-unit">bpm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SpO2 Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Blood Oxygen</span>
+                    <span class="card-icon">💉</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">SpO2</div>
+                    <div class="metric-value">
+                        <span id="spO2">--</span>
+                        <span class="metric-unit">%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Air Quality Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Air Quality</span>
+                    <span class="card-icon">🌫️</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Status</div>
+                    <div id="airStatus" class="metric-value" style="font-size: 1.5em;">--</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Raw Value</div>
+                    <div style="font-size: 1.2em; color: #666;">
+                        <span id="airValue">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GPS Card -->
+        <div class="map-container">
+            <div class="card-header">
+                <span class="card-title">GPS Location</span>
+                <span id="gpsAlert" class="alert-indicator alert-safe">MOVING</span>
+            </div>
+            <div class="coordinates">
+                <div class="coord-box">
+                    <div class="coord-label">Latitude</div>
+                    <div id="latitude" class="coord-value">--</div>
+                </div>
+                <div class="coord-box">
+                    <div class="coord-label">Longitude</div>
+                    <div id="longitude" class="coord-value">--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let reconnectInterval;
+
+        function connectWebSocket() {
+            const ip = document.getElementById('ipAddress').value;
+            const wsUrl = `ws://${ip}:81`;
+            
+            document.getElementById('connectBtn').disabled = true;
+            
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = function() {
+                    console.log('WebSocket connected');
+                    document.getElementById('connectionStatus').textContent = 'CONNECTED';
+                    document.getElementById('connectionStatus').className = 'status-badge status-connected';
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('connectBtn').textContent = 'Disconnect';
+                    document.getElementById('connectBtn').onclick = disconnectWebSocket;
+                };
+
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    updateDashboard(data);
+                };
+
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                };
+
+                ws.onclose = function() {
+                    console.log('WebSocket disconnected');
+                    document.getElementById('connectionStatus').textContent = 'DISCONNECTED';
+                    document.getElementById('connectionStatus').className = 'status-badge status-disconnected';
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('connectBtn').textContent = 'Connect';
+                    document.getElementById('connectBtn').onclick = connectWebSocket;
+                };
+            } catch(error) {
+                console.error('Failed to connect:', error);
+                document.getElementById('connectBtn').disabled = false;
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function updateDashboard(data) {
+            // Alert Banner
+            const alertBanner = document.getElementById('alertBanner');
+            if (data.alertActive) {
+                alertBanner.classList.add('active');
+            } else {
+                alertBanner.classList.remove('active');
+            }
+
+            // Eye Status
+            document.getElementById('eyeStatus').textContent = data.eye.status;
+            const eyeAlert = document.getElementById('eyeAlert');
+            if (data.eye.alert) {
+                eyeAlert.textContent = '⚠️ EYES CLOSED';
+                eyeAlert.className = 'alert-indicator alert-warning';
+            } else {
+                eyeAlert.textContent = 'NORMAL';
+                eyeAlert.className = 'alert-indicator alert-safe';
+            }
+
+            // MPU6050
+            document.getElementById('rollValue').textContent = data.mpu.roll.toFixed(1);
+            const mpuAlert = document.getElementById('mpuAlert');
+            if (data.mpu.alert) {
+                mpuAlert.textContent = '⚠️ HEAD TILT';
+                mpuAlert.className = 'alert-indicator alert-warning';
+            } else {
+                mpuAlert.textContent = 'NORMAL';
+                mpuAlert.className = 'alert-indicator alert-safe';
+            }
+
+            // Health
+            document.getElementById('heartRate').textContent = 
+                data.health.heartRate > 0 ? data.health.heartRate.toFixed(1) : '--';
+            document.getElementById('spO2').textContent = 
+                data.health.spO2 > 0 ? data.health.spO2.toFixed(1) : '--';
+
+            // GPS
+            if (data.gps.valid) {
+                document.getElementById('latitude').textContent = data.gps.latitude.toFixed(6);
+                document.getElementById('longitude').textContent = data.gps.longitude.toFixed(6);
+            } else {
+                document.getElementById('latitude').textContent = 'NO FIX';
+                document.getElementById('longitude').textContent = 'NO FIX';
+            }
+
+            const gpsAlert = document.getElementById('gpsAlert');
+            if (data.gps.alert) {
+                gpsAlert.textContent = '⚠️ STATIONARY';
+                gpsAlert.className = 'alert-indicator alert-warning';
+            } else {
+                gpsAlert.textContent = 'MOVING';
+                gpsAlert.className = 'alert-indicator alert-safe';
+            }
+
+            // Air Quality
+            document.getElementById('airValue').textContent = data.air.value;
+            document.getElementById('airStatus').textContent = data.air.status;
+        }
+    </script>
+</body>
+</html>
